@@ -936,9 +936,6 @@ def get_named_platform() -> str:
     if main.IS_USERLAND:
         return "🐧 UserLand"
 
-    if main.IS_AEZA:
-        return "🛡 Aeza"
-
     if main.IS_PTERODACTYL:
         return "🦅 Pterodactyl"
        
