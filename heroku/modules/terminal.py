@@ -371,6 +371,7 @@ class TerminalMod(loader.Module):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=utils.get_base_dir(),
+            preexec_fn=os.setsid,
         )
 
         if editor is None:

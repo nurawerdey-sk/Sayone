@@ -941,9 +941,9 @@ def get_named_platform() -> str:
 
     if main.IS_PTERODACTYL:
         return "🦅 Pterodactyl"
-        
-    #if main.IS_HIKKAHOST:
-        #return "🌼 HikkaHost"
+       
+    if main.IS_HIKKAHOST:
+        return "🌼 HikkaHost"
 
     if main.IS_DOCKER:
         return "🐳 Docker"
@@ -967,8 +967,8 @@ def get_platform_emoji() -> str:
         )
     )
 
-   # if main.IS_HIKKAHOST:
-   #     return BASE.format(5395745114494624362)
+    if main.IS_HIKKAHOST:
+        return BASE.format(5395745114494624362)
     
     if main.IS_JAMHOST:
         return BASE.format(5242536621659678947)
@@ -1150,7 +1150,7 @@ def smart_split(
         if bytes_offset + length * 2 >= bytes_length:
             yield parser.unparse(
                 text[text_offset:],
-                list(sorted(pending_entities, key=lambda x: x.offset)),
+                list(sorted(pending_entities, key=lambda x: (x.offset, -x.length))),
             )
             break
 
@@ -1250,7 +1250,7 @@ def smart_split(
         current_text = text[text_offset:split_index]
         yield parser.unparse(
             current_text,
-            list(sorted(current_entities, key=lambda x: x.offset)),
+            list(sorted(current_entities, key=lambda x: (x.offset, -x.length))),
         )
 
         text_offset = split_index + exclude
@@ -1566,9 +1566,23 @@ def get_ram_usage() -> float:
     except Exception:
         return 0
 
+run_first_time = True # workaround 0.00% cpu usage
 def get_cpu_usage():
+    import psutil
+    global run_first_time
+
+    if run_first_time:
+        try:
+            psutil.cpu_count(logical=True)
+            for proc in psutil.process_iter():
+                try:
+                    proc.cpu_percent()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+        except Exception: pass
+        run_first_time = False
+
     try:
-        import psutil
         num_cores = psutil.cpu_count(logical=True)
         cpu = 0.0
         for proc in psutil.process_iter():

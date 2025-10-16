@@ -21,6 +21,7 @@ from herokutl.errors import (
     PasswordHashInvalidError,
     PhoneCodeExpiredError,
     PhoneCodeInvalidError,
+    PhoneNumberInvalidError,
     SessionPasswordNeededError,
 )
 from herokutl.sessions import MemorySession
@@ -264,6 +265,9 @@ class HerokuWebMod(loader.Module):
                 self.strings("floodwait_error").format(e.seconds),
                 reply_markup={"text": self.strings("btn_no"), "action": "close"},
             )
+            return
+        except PhoneNumberInvalidError:
+            await self._inline_login(call, user, after_fail=True)
             return
         
         reply_markup = {"text": self.strings("enter_code"), "input": self.strings("login_code"), "handler": self.inline_code_handler, "args": (client, phone, user,)}

@@ -14,7 +14,7 @@ import contextlib
 
 import herokutl
 from herokutl.extensions.html import CUSTOM_EMOJIS
-from herokutl.tl.types import Message
+from herokutl.tl.types import Message, User
 
 from .. import loader, main, utils, version
 from ..inline.types import InlineCall
@@ -197,30 +197,80 @@ class CoreMod(loader.Module):
 
     @loader.command()
     async def setprefix(self, message: Message):
-        if not (args := utils.get_args_raw(message)):
+        if not (args := utils.get_args(message)):
             await utils.answer(message, self.strings("what_prefix"))
             return
 
-        if len(args) != 1 and self.config.get("allow_nonstandart_prefixes") is False:
+        if len(args[0]) != 1 and self.config.get("allow_nonstandart_prefixes") is False:
             await utils.answer(message, self.strings("prefix_incorrect"))
             return
 
-        if args == "s":
+        if args[0] == "s":
             await utils.answer(message, self.strings("prefix_incorrect"))
             return
+
+        if len(args) == 2:
+            if args[1].isdigit():
+                args[1] = int(args[1])
+            try:
+                entity = await self.client.get_entity(args[1])
+            except:
+                return await utils.answer(message, self.strings["invalid_id_or_username"])
+            
+            if not isinstance(entity, User):
+                return await utils.answer(message, f"The entity {args[1]} is not a User")
+            
+            sgroup_users = []
+            for g in self._client.dispatcher.security._sgroups.values():
+                for u in g.users:
+                    sgroup_users.append(u)
+
+            tsec_users = [rule['target'] for rule in self._client.dispatcher.security._tsec_user]
+            ub_owners = self._client.dispatcher.security.owner.copy()
+
+            all_users = sgroup_users + tsec_users + ub_owners
+
+            if entity.id not in all_users:
+                return await utils.answer(message, self.strings["id_not_found_scgroup"])
+            
+            oldprefix = utils.escape_html(self.get_prefix(entity.id))
+            all_prefixes = self._db.get(
+                main.__name__,
+                "command_prefixes",
+                {},
+            )
+
+            all_prefixes[str(entity.id)] = args[0]
+
+            self._db.set(
+                main.__name__,
+                "command_prefixes",
+                all_prefixes,
+            )
+            return await utils.answer(
+                message,
+                self.strings("entity_prefix_set").format(
+                    "<emoji document_id=5197474765387864959>👍</emoji>",
+                    entity_name=utils.escape_html(entity.first_name),
+                    newprefix=utils.escape_html(args[0]),
+                    oldprefix=utils.escape_html(oldprefix),
+                    entity_id=args[1],
+                ),
+            )
+
 
         oldprefix = utils.escape_html(self.get_prefix())
 
         self._db.set(
             main.__name__,
             "command_prefix",
-            args,
+            args[0],
         )
         await utils.answer(
             message,
             self.strings("prefix_set").format(
                 "<emoji document_id=5197474765387864959>👍</emoji>",
-                newprefix=utils.escape_html(args),
+                newprefix=utils.escape_html(args[0]),
                 oldprefix=utils.escape_html(oldprefix),
             ),
         )

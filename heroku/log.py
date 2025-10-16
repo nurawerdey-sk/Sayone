@@ -25,7 +25,7 @@ import typing
 from logging.handlers import RotatingFileHandler
 
 import herokutl
-from aiogram.exceptions import TelegramNetworkError
+from aiogram.exceptions import TelegramNetworkError, TelegramRetryAfter
 from herokutl.errors import PersistentTimestampOutdatedError
 from herokutl.errors.rpcbaseerrors import (
     ServerError,
@@ -94,6 +94,9 @@ def override_text(exception: Exception) -> typing.Optional[str]:
 
     if isinstance(exception, ModuleNotFoundError):
         return f"📦 {traceback.format_exception_only(type(exception), exception)[0].split(':')[1].strip()}"
+    
+    if isinstance(exception, TelegramRetryAfter):
+        return f"✋ <b>Bot is hitting limits on {type(exception.method).__name__!r} method and got {exception.retry_after} seconds floodwait</b>"
 
     return None
 
@@ -413,7 +416,7 @@ class TelegramLogsHandler(logging.Handler):
 
             for exceptions in self._exc_queue.values():
                 for exc in exceptions:
-                    asyncio.create_task(exc)
+                    asyncio.create_task(self.avoid_floodwait(exc))
 
             self.tg_buff = []
 
@@ -448,6 +451,12 @@ class TelegramLogsHandler(logging.Handler):
                                 disable_notification=True,
                             )
                         )
+    async def avoid_floodwait(self, exc):
+        try:
+            await exc
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(e.retry_after)
+            await self.avoid_floodwait(exc)
 
     def emit(self, record: logging.LogRecord):
         try:

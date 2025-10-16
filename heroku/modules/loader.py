@@ -487,6 +487,30 @@ class LoaderMod(loader.Module):
             photo="https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/joined_jr.png",
         )
 
+    async def install_requirements(self, requirements: list):
+        is_venv = hasattr(sys, 'real_prefix') or sys.prefix != getattr(sys, 'base_prefix', sys.prefix)
+        need_user_flag = loader.USER_INSTALL and not is_venv
+
+        pip = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "-q",
+            "--disable-pip-version-check",
+            "--no-warn-script-location",
+            *["--user"] if need_user_flag else [],
+            *requirements,
+        )
+
+        rc = await pip.wait()
+
+        if rc != 0:
+            return False
+
+        return True
+
     async def load_module(
         self,
         doc: str,
@@ -496,6 +520,7 @@ class LoaderMod(loader.Module):
         did_requirements: bool = False,
         save_fs: bool = False,
         blob_link: bool = False,
+        did_requires: bool = False,
     ):
         if any(
             line.replace(" ", "") == "#scope:ffmpeg" for line in doc.splitlines()
@@ -542,6 +567,31 @@ class LoaderMod(loader.Module):
         developer = re.search(r"# ?meta developer: ?(.+)", doc)
         developer = developer.group(1) if developer else False
 
+        if not did_requires:
+            requirements = []
+            try:
+                requirements = list(
+                                filter(
+                                    lambda x: not x.startswith(("-", "_", ".")),
+                                    map(
+                                        str.strip,
+                                        loader.VALID_PIP_PACKAGES.search(doc)[1].split(),
+                                    ),
+                                )
+                            )
+            except TypeError:
+                pass
+
+            if requirements:
+                await self.install_requirements(requirements)
+
+                importlib.invalidate_caches()
+
+                kwargs = utils.get_kwargs()
+                kwargs["did_requires"] = True
+
+                return await self.load_module(**kwargs)  # Try again
+
         blob_link = self.strings("blob_link") if blob_link else ""
 
         if name is None:
@@ -576,7 +626,7 @@ class LoaderMod(loader.Module):
         
         async def restart_inline(call: InlineCall):
             await call.edit(self.strings["requirements_restarted"])
-            await self.lookup("Updater").restart(await utils.answer(message, "{prefix}restart@me -f".format(prefix = self.get_prefix())))
+            await self.invoke("restart", "-f", message = message)
 
         async def core_overwrite(e: CoreOverwriteError):
             nonlocal message
@@ -616,29 +666,13 @@ class LoaderMod(loader.Module):
                     "Module loading failed, attemping dependency installation (%s)",
                     e.name,
                 )
-                # Let's try to reinstall dependencies
-                try:
-                    requirements = list(
-                        filter(
-                            lambda x: not x.startswith(("-", "_", ".")),
-                            map(
-                                str.strip,
-                                loader.VALID_PIP_PACKAGES.search(doc)[1].split(),
-                            ),
-                        )
-                    )
-                except TypeError:
-                    logger.warning(
-                        "No valid pip packages specified in code, attemping"
-                        " installation from error"
-                    )
-                    requirements = [
-                        {
-                            "sklearn": "scikit-learn",
-                            "pil": "Pillow",
-                            "herokutl": "Heroku-TL-New",
-                        }.get(e.name.lower(), e.name)
-                    ]
+                requirements = [
+                    {
+                        "sklearn": "scikit-learn",
+                        "pil": "Pillow",
+                        "herokutl": "Heroku-TL-New",
+                    }.get(e.name.lower(), e.name)
+                ]
 
                 if not requirements:
                     raise Exception("Nothing to install") from e
@@ -671,25 +705,8 @@ class LoaderMod(loader.Module):
                         ),
                     )
 
-                is_venv = hasattr(sys, 'real_prefix') or sys.prefix != getattr(sys, 'base_prefix', sys.prefix)
-                need_user_flag = loader.USER_INSTALL and not is_venv
-
-                pip = await asyncio.create_subprocess_exec(
-                    sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    "--upgrade",
-                    "-q",
-                    "--disable-pip-version-check",
-                    "--no-warn-script-location",
-                    *["--user"] if need_user_flag else [],
-                    *requirements,
-                )
-
-                rc = await pip.wait()
-
-                if rc != 0:
+                result = await self.install_requirements(requirements)
+                if not result:
                     if message is not None:
                         await utils.answer(
                             message,
@@ -877,8 +894,9 @@ class LoaderMod(loader.Module):
             instance.strings.external_strings = transations
 
         for alias, cmd in self.lookup("settings").get("aliases", {}).items():
-            if cmd in instance.commands:
-                self.allmodules.add_alias(alias, cmd)
+            _cmd = cmd.split(maxsplit=1)
+            if _cmd[0] in instance.commands:
+                self.allmodules.add_alias(alias, *_cmd)
 
         try:
             modname = instance.strings("name")
@@ -1240,7 +1258,7 @@ class LoaderMod(loader.Module):
             aliases = {
                 alias: cmd
                 for alias, cmd in self.lookup("settings").get("aliases", {}).items()
-                if self.allmodules.add_alias(alias, cmd)
+                if self.allmodules.add_alias(alias, *cmd.split(maxsplit=1))
             }
 
             self.lookup("settings").set("aliases", aliases)

@@ -97,7 +97,6 @@ IS_DOCKER = "DOCKER" in os.environ
 IS_LAVHOST = "LAVHOST" in os.environ
 IS_HIKKAHOST = "HIKKAHOST" in os.environ
 IS_MACOS = "com.apple" in os.environ.get("PATH", "")
-IS_AEZA = "aeza" in socket.gethostname()
 IS_USERLAND = "userland" in os.environ.get("USER", "")
 IS_PTERODACTYL = "PTERODACTYL" in os.environ
 IS_JAMHOST = "JAMHOST" in os.environ
@@ -1011,13 +1010,20 @@ class Heroku:
     async def _main(self):
         """Main entrypoint"""
         self._init_web()
+        inital_web = False
         save_config_key("port", self.arguments.port)
         await self._get_token()
 
         if (
             not self.clients and not self.sessions or not await self._init_clients()
-        ) and not await self._initial_setup():
+        ) and not (inital_web := await self._initial_setup()):
             return
+        if inital_web:
+            async def scheduled_web_stop():
+                await asyncio.sleep(delay=120)
+                await self.web.stop()
+                logging.debug("inital web was stopped for security reasons")
+            asyncio.create_task(scheduled_web_stop())
 
         self.loop.set_exception_handler(
             lambda _, x: logging.error(

@@ -517,7 +517,7 @@ class UpdaterMod(loader.Module):
     async def _add_folder(self):
         folders = await self._client(GetDialogFiltersRequest())
 
-        if any(getattr(folder, "title", None) == "heroku" for folder in folders.filters):
+        if any(getattr(folder, "title", None) == "Heroku" for folder in folders.filters):
             return
 
         try:
