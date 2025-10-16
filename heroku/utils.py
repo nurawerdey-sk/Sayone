@@ -936,6 +936,12 @@ def get_named_platform() -> str:
     if main.IS_USERLAND:
         return "🐧 UserLand"
 
+    if main.IS_AEZA:
+        return "🛡 Aeza"
+
+    if main.IS_PTERODACTYL:
+        return "🦅 Pterodactyl"
+       
     if main.IS_HIKKAHOST:
         return "🌼 HikkaHost"
 
@@ -970,6 +976,9 @@ def get_platform_emoji() -> str:
     if main.IS_USERLAND:
         return BASE.format(5458877818031077824)
 
+    if main.IS_PTERODACTYL:
+        return BASE.format(5427286516797831670)
+        
     if main.IS_LAVHOST:
         return BASE.format(5352753797531721191)
 
