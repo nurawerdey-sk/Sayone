@@ -63,7 +63,8 @@ class InlineMessage:
         cid = entity.get("chat")
 
         await self.inline_manager._client.delete_messages(cid, msgid)
-        return await self.original_call.answer("")
+        if hasattr(self, "original_call"):
+            return await self.original_call.answer("")
 
     async def unload(self) -> bool:
         return await self.inline_manager._unload_unit(unit_id=self.unit_id)
