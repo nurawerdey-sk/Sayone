@@ -565,7 +565,7 @@ def init():
     class NoFetchUpdatesFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:
             msg = record.getMessage()
-            return "Failed to fetch updates" not in msg or "Sleep" not in msg
+            return "Failed to fetch updates" not in msg and "Sleep" not in msg
     
     logging.getLogger("aiogram.dispatcher").addFilter(NoFetchUpdatesFilter())
     handler = logging.StreamHandler()
