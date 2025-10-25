@@ -25,6 +25,7 @@ from typing import Optional
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from herokutl.errors import WebpageMediaEmptyError
 from herokutl.tl.types import Message
 from herokutl.utils import get_display_name
 from .. import loader, utils, version
@@ -275,33 +276,42 @@ class HerokuInfoMod(loader.Module):
     @loader.command()
     async def infocmd(self, message: Message):
         start = time.perf_counter_ns()
-        if self.config['switchInfo']:
-            if self._get_info_photo(start) is None:
-                await utils.answer(
-                    message, 
-                    self.strings["incorrect_img_format"]
+        try:
+            if self.config['switchInfo']:
+                if self._get_info_photo(start) is None:
+                    await utils.answer(
+                        message, 
+                        self.strings["incorrect_img_format"]
+                    )
+                    return
+
+                await utils.answer_file(
+                    message,
+                    self._get_info_photo(start),
+                    reply_to=getattr(message, "reply_to_msg_id", None),
                 )
-                return
-           
-            await utils.answer_file(
-                message,
-                self._get_info_photo(start),
-                reply_to=getattr(message, "reply_to_msg_id", None),
-            )
-        elif self.config["custom_message"] is None:
+            elif self.config["custom_message"] is None:
+                await utils.answer(
+                    message,
+                    self._render_info(start),
+                    file = self.config["banner_url"],
+                    reply_to=getattr(message, "reply_to_msg_id", None),
+                )
+            else:
+                if '{ping}' in self.config["custom_message"]:
+                    message = await utils.answer(message, self.config["ping_emoji"])
+                await utils.answer(
+                    message,
+                    self._render_info(start),
+                    file = self.config["banner_url"],
+                    reply_to=getattr(message, "reply_to_msg_id", None),
+                )
+        except WebpageMediaEmptyError:
             await utils.answer(
                 message,
-                self._render_info(start),
-                file = self.config["banner_url"],
-                reply_to=getattr(message, "reply_to_msg_id", None),
-            )
-        else:
-            if '{ping}' in self.config["custom_message"]:
-                message = await utils.answer(message, self.config["ping_emoji"])
-            await utils.answer(
-                message,
-                self._render_info(start),
-                file = self.config["banner_url"],
+                self.strings["no_banner"].format(
+                    self.config["banner_url"], # ❌ <b>Я не могу найти баннер по ссылке {link}</b>
+                ),
                 reply_to=getattr(message, "reply_to_msg_id", None),
             )
 
