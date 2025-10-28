@@ -76,6 +76,18 @@ class HerokuInfoMod(loader.Module):
                     fixed_len=7,
                 ),
             ),
+            loader.ConfigValue(
+                "quote_media",
+                False,
+                "Switch preview media to quote",
+                validator=loader.validators.Boolean(),
+            ),
+            loader.ConfigValue(
+                "invert_media",
+                False,
+                "Switch preview invert media",
+                validator=loader.validators.Boolean(),
+            ),
         )
 
     def _get_os_name(self):
@@ -296,6 +308,7 @@ class HerokuInfoMod(loader.Module):
                     self._render_info(start),
                     file = self.config["banner_url"],
                     reply_to=getattr(message, "reply_to_msg_id", None),
+                    invert_media = self.config["invert_media"]
                 )
             else:
                 if '{ping}' in self.config["custom_message"]:
@@ -305,6 +318,7 @@ class HerokuInfoMod(loader.Module):
                     self._render_info(start),
                     file = self.config["banner_url"],
                     reply_to=getattr(message, "reply_to_msg_id", None),
+                    invert_media = self.config["invert_media"]
                 )
         except WebpageMediaEmptyError:
             await utils.answer(
