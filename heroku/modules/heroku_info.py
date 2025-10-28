@@ -26,6 +26,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from herokutl.errors import WebpageMediaEmptyError
+from herokutl.types import InputMediaWebPage
 from herokutl.tl.types import Message
 from herokutl.utils import get_display_name
 from .. import loader, utils, version
