@@ -321,8 +321,8 @@ class HerokuInfoMod(loader.Module):
                         message,
                         self._render_info(start),
                         file = media,
-                       reply_to=getattr(message, "reply_to_msg_id", None),
-                       invert_media = self.config["invert_media"]
+                        reply_to=getattr(message, "reply_to_msg_id", None),
+                        invert_media = self.config["invert_media"]
                     )
         except WebpageMediaEmptyError:
             await utils.answer(
