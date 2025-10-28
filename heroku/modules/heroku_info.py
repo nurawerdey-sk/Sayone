@@ -289,6 +289,9 @@ class HerokuInfoMod(loader.Module):
     @loader.command()
     async def infocmd(self, message: Message):
         start = time.perf_counter_ns()
+        media = self.config["banner_url"]
+        if self.config["quote_media"] is True:
+            media = InputMediaWebPage(self.config["banner_url"]) 
         try:
             if self.config['switchInfo']:
                 if self._get_info_photo(start) is None:
@@ -304,40 +307,23 @@ class HerokuInfoMod(loader.Module):
                     reply_to=getattr(message, "reply_to_msg_id", None),
                 )
             elif self.config["custom_message"] is None:
-                if self.config["quote_media"] == False:
-                    await utils.answer(
-                        message,
-                        self._render_info(start),
-                        file = self.config["banner_url"],
-                        reply_to=getattr(message, "reply_to_msg_id", None),
-                        invert_media = self.config["invert_media"]
+                await utils.answer(
+                    message,
+                    self._render_info(start),
+                    file = media,
+                    reply_to=getattr(message, "reply_to_msg_id", None),
+                    invert_media = self.config["invert_media"]
                 )
-                else:
-                    await utils.answer(
-                        message,
-                        self._render_info(start),
-                        file = InputMediaWebPage(self.config["banner_url"]),
-                        reply_to=getattr(message, "reply_to_msg_id", None),
-                        invert_media = self.config["invert_media"])
             else:
                 if '{ping}' in self.config["custom_message"]:
                     message = await utils.answer(message, self.config["ping_emoji"])
-                    if self.config["quote_media"] is False:
-                        await utils.answer(
-                            message,
-                            self._render_info(start),
-                            file = self.config["banner_url"],
-                           reply_to=getattr(message, "reply_to_msg_id", None),
-                           invert_media = self.config["invert_media"]
+                    await utils.answer(
+                        message,
+                        self._render_info(start),
+                        file = media,
+                       reply_to=getattr(message, "reply_to_msg_id", None),
+                       invert_media = self.config["invert_media"]
                     )
-                    else:
-                        await utils.answer(
-                            message,
-                            self._render_info(start),
-                            file = InputMediaWebPage(self.config["banner_url"]),
-                            reply_to=getattr(message, "reply_to_msg_id", None),
-                            invert_media = self.config["invert_media"]
-                        )
         except WebpageMediaEmptyError:
             await utils.answer(
                 message,
