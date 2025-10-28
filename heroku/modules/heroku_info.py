@@ -320,24 +320,23 @@ class HerokuInfoMod(loader.Module):
                         invert_media = self.config["invert_media"])
             else:
                 if '{ping}' in self.config["custom_message"]:
+                    message = await utils.answer(message, self.config["ping_emoji"])
                     if self.config["quote_media"] is False:
-                        message = await utils.answer(message, self.config["ping_emoji"])
-                    await utils.answer(
-                        message,
-                        self._render_info(start),
-                        file = self.config["banner_url"],
-                        reply_to=getattr(message, "reply_to_msg_id", None),
-                        invert_media = self.config["invert_media"]
+                        await utils.answer(
+                            message,
+                            self._render_info(start),
+                            file = self.config["banner_url"],
+                           reply_to=getattr(message, "reply_to_msg_id", None),
+                           invert_media = self.config["invert_media"]
                     )
                     else:
-                        message = await utils.answer(message, self.config["ping_emoji"])
-                    await utils.answer(
-                        message,
-                        self._render_info(start),
-                        file = InputMediaWebPage(self.config["banner_url"]),
-                        reply_to=getattr(message, "reply_to_msg_id", None),
-                        invert_media = self.config["invert_media"]
-                    )
+                        await utils.answer(
+                            message,
+                            self._render_info(start),
+                            file = InputMediaWebPage(self.config["banner_url"]),
+                            reply_to=getattr(message, "reply_to_msg_id", None),
+                            invert_media = self.config["invert_media"]
+                        )
         except WebpageMediaEmptyError:
             await utils.answer(
                 message,
