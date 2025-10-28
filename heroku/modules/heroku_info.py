@@ -316,7 +316,7 @@ class HerokuInfoMod(loader.Module):
                 )
             else:
                 if '{ping}' in self.config["custom_message"]:
-                    await utils.answer(message, self.config["ping_emoji"])
+                    message = await utils.answer(message, self.config["ping_emoji"])
                     await utils.answer(
                         message,
                         self._render_info(start),
